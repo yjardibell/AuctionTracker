@@ -5,56 +5,82 @@ var REQUEST_INTERVAL = 1000;
 
 // History of current
 var currentTracks = {};
+var SCN = 0;
 
 /**
 *   Set a listener for a the auction with id @auctionID. The @onBid function will be called at every bid happend.
 */
 function listenAuction(auctionID, onBid){
-  if(currentTracks[auctionID] != null){
-    console.log("The auction is already in track!");
-    return;
+  if(currentTracks[auctionID] == null){
+    currentTracks[auctionID] = {listeners: [], tracker: null, lastMove: {time: 0, user : ''}};
+    currentTracks[auctionID].tracker = setInterval(listener(auctionID), 500);
   }
-  currentTracks[auctionID] = {trackID: 0, time: 0, user : ''};
-  currentTracks[auctionID].trackID = setInterval(function(){
-    postRequest(auctionID, function(data){
-      try {
-      var info = JSON.parse(data).d.split('|');
-      } catch (err) {
-        console.log("Error: " + data);
-        return;
-      }
-      if(info[3] != currentTracks[auctionID].user){
-        currentTracks[auctionID].user = info[3];
-        onBid(currentTracks[auctionID].time, currentTracks[auctionID].user);
-      } else {
-        currentTracks[auctionID].time = info[2];
-      }
-  });
-  }, 500);
+  currentTracks[auctionID].listeners.push({id: ++SCN, callback: onBid});
+  return SCN;
 }
 
 /**
 *   Return an array with the auction's ids that are being listening at the moment.
 */
 function getListenedAuctions(){
-  var tracks = [];
-  for(var auction in currentTracks)
-    tracks.push(auction);
-  return tracks;
+  var auctions = [];
+  for(var each in currentTracks)
+    auctions.push(each);
+  return auctions;
 }
 
 
 /**
 *   Remove de listener for the corresponding auction.
 */
-function stopListener(auctionID){
-  if(currentTracks[auctionID] == null){
-    console.log("The action is not been tracked right now!");
+function stopListener(scn){
+  if(scn <= 0 || scn > SCN || scn == null){
+    console.log("Invalid listener identifier");
     return;
   }
-  clearInterval(currentTracks[auctionID].trackID);
-  currentTracks[auctionID] = null;
+
+  // Remove de callback
+  var auctionID = 0;
+  var index = 0;
+  for(var auction in currentTracks){
+    index = 0;
+    auctionID = auction;
+    for(var listener in currentTracks[auction].listeners){
+       if(listener.id = scn){
+         listeners.splice(index,1);
+         break;
+       }
+       index++;
+    }
+  }
+
+    // Remove the listener
+  if(currentTracks[auctionID].listeners.length == 0){
+      clearInterval(currentTracks[auctionID].tracker);
+      currentTracks[auctionID] = null;
+  }
 }
+
+function listener(auctionID){
+  return function(){
+      postRequest(auctionID, function(data){
+        try {
+        var info = JSON.parse(data).d.split('|');
+        } catch (err) {
+          console.log("Error: " + data);
+          return;
+        }
+        if(info[3] != currentTracks[auctionID].lastMove.user){
+          currentTracks[auctionID].lastMove.user = info[3];
+          for(var each in currentTracks[auctionID].listeners)
+            each.callback(currentTracks[auctionID].lastMove);
+        } else {
+          currentTracks[auctionID].lastMove.time = info[2];
+        }
+      });
+    }
+}
+
 
 function postRequest(auctionID, resp) {
   // Build the post string from an object
