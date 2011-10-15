@@ -1,3 +1,5 @@
 var AuctionListener = require("./listener.js");
+var AuctionLogger = require("./logger.js");
 
-AuctionListener.listenAuction(6310, function(data){console.log(data.user + " - " + data.time)});
+var logger = new AuctionLogger(AuctionListener);
+logger.start(6310);
