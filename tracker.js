@@ -45,15 +45,15 @@ function stopListener(scn){
   for(var auction in currentTracks){
     index = 0;
     auctionID = auction;
-    for(var listener in currentTracks[auction].listeners){
-       if(listener.id = scn){
-         listeners.splice(index,1);
+    for(var index in currentTracks[auction].listeners){
+      var listener = currentTracks[auction].listeners[index];
+       if(listener.id == scn){
+         currentTracks[auction].listeners.splice(index,1);
          break;
        }
        index++;
     }
   }
-
     // Remove the listener
   if(currentTracks[auctionID].listeners.length == 0){
       clearInterval(currentTracks[auctionID].tracker);
@@ -72,8 +72,9 @@ function listener(auctionID){
         }
         if(info[3] != currentTracks[auctionID].lastMove.user){
           currentTracks[auctionID].lastMove.user = info[3];
-          for(var each in currentTracks[auctionID].listeners)
-            each.callback(currentTracks[auctionID].lastMove);
+          for(var index in currentTracks[auctionID].listeners){
+            currentTracks[auctionID].listeners[index].callback(currentTracks[auctionID].lastMove);
+          }
         } else {
           currentTracks[auctionID].lastMove.time = info[2];
         }
@@ -112,9 +113,22 @@ function postRequest(auctionID, resp) {
   post_req.end();
 }
 
+var counter = 1;
 
-
-listenAuction(6310, function(time, user){
-  console.log("6310> " + user + " ofertó a los " + time + " segundos");
+var l1 = listenAuction(6310, function(bid){
+  console.log("1> " + bid.user + " ofertó a los " + bid.time + " segundos");
+  if(++counter == 4)
+    stopListener(l1);
 });
 
+var l2 = listenAuction(6310, function(bid){
+  console.log("2> " + bid.user + " ofertó a los " + bid.time + " segundos");
+  if(counter == 3)
+    stopListener(l2);
+});
+
+var l3 = listenAuction(6310, function(bid){
+  console.log("3> " + bid.user + " ofertó a los " + bid.time + " segundos");
+  if(counter == 2)
+    stopListener(l3);
+});
